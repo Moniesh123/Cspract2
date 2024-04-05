@@ -1,63 +1,63 @@
-enable secret enpa55
+Part1: configure router
 
-line console 0
-password conpa55
+Step1: configure password for vty lines
+line vty 0 4
+password vtypa55
 login
 
-ip domain-name ccnasecurity.com
+step2: configure secret password on router
+enable secret enpa55
+
+step3: configure OSPF on router
+router ospf 1
+network 192.168.1.0 0.0.0.255 area 0
+
+step4: configure OSPF md5 authentication for all routers in area 0
+router ospf 1
+area 0 authentication message-digest
+
+step5: configure md5 key for all routers in area 0
+int gig0/0
+ip ospf message-digest-key 1 md5 md5pa55
+
+step6: Verify md5 authentication configuration
+show ip ospf interface
+
+step7: Verify end to end connectivity => PC0 -> R1 and PC1 -> R1
+
+Part2: configure local AAA authentication for console Access on R1
+
+step1: configure local username on R1
 username admin secret adminpa55
-line  vty 0 4
-login local
+
+step2: configure local AAA authentication for console access on R1
+aaa new-model
+aaa authentication login default local
+
+step3: configure the line console to use the defined AAA authentication method
+line console 0
+login authentication default
+
+step4: verify the AAA authentication method
+exit from R1 hash(#) prompt => R1#exit
+
+Part3: configure local AAA Authentication for vty lines on R1
+
+step1: Configure domain-name and crypto key for use with SSH
+ip domain-name ccnasecurity.com
 crypto key generate rsa
 
-int loopback 0
-ip address 192.168.2.1 255.255.255.0
-no shut
+step2: Configure a named list AAA authentication method for the vty lines on R1
+aaa authentication login ssh-login local
 
-r1
-ip route 192.168.3.0 255.255.255.0 10.1.1.2
-ip route 10.2.2.0 255.255.255.252 10.1.1.2
-ip route 192.168.2.0 255.255.255.0 10.1.1.2
-
-r2
-ip route 192.168.1.0 255.255.255.0 10.1.1.1
-ip route 192.168.2.0 255.255.255.0 10.2.2.1
-
-access-list 10 permit host 192.168.3.3
-
+step3: configure the vry lines to use the defined AAA authentication method
 line vty 0 4
-access-class 10 in
+login authentication ssh-login
+transport input ssh
+end
 
-ssh -l admin 192.168.2.1
-
-access-list 120 permit udp any host 192.168.1.3 eq domain
-access-list 120 permit tcp any host 192.168.1.3 eq smtp
-access-list 120 permit tcp any host 192.168.1.3 eq ftp
-access-list 120 deny tcp any host 192.168.1.3 eq 443
-access-list 120 permit tcp host 192.168.3.3 host 10.1.1.1 eq 22
-
-
-int se0/1/0
-ip access-group 120 in
-
-access-list 120 permit icmp any any echo-reply
-access-list 120 permit icmp any any unreachable
-access-list 120 deny icmp any any
-access-list 120 permit ip any any 
-
-access-list 110 permit ip 192.168.3.0 0.0.0.255 any
-
-int gig0/0
-ip access-group 110 in
-
-access-list 100 permit tcp 10.0.0.0 0.255.255.255 host 192.168.3.3 eq 22
-access-list 100 deny ip 10.0.0.0 0.255.255.255 any
-access-list 100 deny ip 172.16.0.0 0.15.255.255 any
-access-list 100 deny ip 192.168.0.0 0.0.255.255 any
-access-list 100 deny ip 127.0.0.0 0.255.255.255 any
-access-list 100 deny ip 224.0.0.0 15.255.255.255 any
-access-list 100 permit ip any any
-
-int se0/1/0
-ip access-group 100 in 
-
+step4: Verify the AAA authentication method
+PC0>
+ssh -l admin 92.168.1.1
+PC1>
+ssh -l admin 92.168.1.1
